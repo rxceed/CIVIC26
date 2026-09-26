@@ -182,11 +182,19 @@ export const TestSession = () => {
             fetchedSession = res.data.session
             fetchedQuestions = res.data.questions
 
+            const returnedTimeLimitMs = res.data.quizTimeLimitMs ?? res.data.session?.quizTimeLimitMs
+            if (returnedTimeLimitMs && fetchedSession) {
+              fetchedSession.quizTimeLimitMs = returnedTimeLimitMs
+            }
+
             // Fetch quiz details once for openTime and closeTime
             try {
               const quizRes = await quizApi.getQuizById(fetchedSession.quizId)
               if (quizRes.success) {
                 fetchedQuiz = quizRes.data
+                if (returnedTimeLimitMs && (!fetchedQuiz.quizTimeLimitMs || fetchedQuiz.quizTimeLimitMs <= 0)) {
+                  fetchedQuiz.quizTimeLimitMs = returnedTimeLimitMs
+                }
               }
             } catch (err) {
               console.error('Failed to fetch quiz details', err)
@@ -288,32 +296,60 @@ export const TestSession = () => {
     initSession()
   }, [id])
 
-  // Timer logic: maximum duration is remaining time until closeTime (no extra time for starting late)
+  // Timer logic: duration handling with quizTimeLimitMs and closeTime prioritization
   useEffect(() => {
     if (!session || isSubmitting) return
 
-    // Since the policy is "no extra time for those that started late",
-    // the maximum duration is the remaining time between start time and close time.
-    // The test deadline is strictly closeTime from the quiz GET API.
-    const closeTimeStr = quiz?.closeTime
-    let deadlineMs: number
+    const defaultLimitMs = 2 * 60 * 60 * 1000 // default exactly 2 hours (02:00)
+    const sessionLimitMs = session.quizTimeLimitMs
+    const quizObjLimitMs = quiz?.quizTimeLimitMs
+    const timeLimitMs = (sessionLimitMs && sessionLimitMs > 0)
+      ? sessionLimitMs
+      : (quizObjLimitMs && quizObjLimitMs > 0)
+        ? quizObjLimitMs
+        : defaultLimitMs
 
-    if (closeTimeStr) {
-      deadlineMs = new Date(closeTimeStr).getTime()
-    } else {
-      // Fallback: 2 hours from session start time
-      const startTimeMs = session.startTime ? new Date(session.startTime).getTime() : Date.now()
-      deadlineMs = startTimeMs + 2 * 60 * 60 * 1000
+    // Compare quiz time limit and difference between quiz open and close time (whichever smaller dictates quiz duration)
+    let sessionDurationMs = timeLimitMs
+    let closeTimeMs: number | null = null
+
+    if (quiz?.openTime && quiz?.closeTime) {
+      const openMs = new Date(quiz.openTime).getTime()
+      const closeMs = new Date(quiz.closeTime).getTime()
+      closeTimeMs = closeMs
+      const windowDurationMs = closeMs - openMs
+      if (windowDurationMs > 0) {
+        sessionDurationMs = Math.min(timeLimitMs, windowDurationMs)
+      }
+    } else if (quiz?.closeTime) {
+      closeTimeMs = new Date(quiz.closeTime).getTime()
+    }
+
+    // Session deadline based on start time + calculated session duration
+    const startTimeMs = session.startTime ? new Date(session.startTime).getTime() : Date.now()
+    let deadlineMs = startTimeMs + sessionDurationMs
+
+    // If the quiz close time is due, prioritize it (auto-submitting even if there's duration left)
+    if (closeTimeMs !== null) {
+      deadlineMs = Math.min(deadlineMs, closeTimeMs)
     }
 
     const tick = () => {
       const now = Date.now()
+
+      // Prioritize quiz close time: if close time is due, auto-submit immediately
+      if (closeTimeMs !== null && now >= closeTimeMs) {
+        setTimeLeft('00:00:00')
+        handleFinalSubmit()
+        return
+      }
+
       let diff = deadlineMs - now
       
       if (diff <= 0) {
         diff = 0
         setTimeLeft('00:00:00')
-        handleFinalSubmit() // Auto-submit when time's up
+        handleFinalSubmit() // Auto-submit when duration ends
         return
       }
 

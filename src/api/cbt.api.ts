@@ -11,6 +11,7 @@ export interface CBTSession {
   startTime: string;
   finishTime: string | null;
   shuffleSeed: string | null;
+  quizTimeLimitMs?: number;
 }
 
 export interface CBTStartResponse {
@@ -19,6 +20,7 @@ export interface CBTStartResponse {
   data?: {
     session: CBTSession;
     questions: any[]; // Questions with answer stripped
+    quizTimeLimitMs?: number;
   };
 }
 

@@ -3,6 +3,22 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { AdminHeader } from '../components/AdminHeader'
 import { quizApi } from '../api/quiz.api'
 
+const msToHhMm = (ms?: number | null): string => {
+  if (!ms || ms <= 0) return '02:00'
+  const totalMinutes = Math.floor(ms / (60 * 1000))
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+const hhMmToMs = (hhMm: string): number => {
+  if (!hhMm) return 2 * 60 * 60 * 1000
+  const [hoursStr, minutesStr] = hhMm.split(':')
+  const hours = parseInt(hoursStr || '0', 10)
+  const minutes = parseInt(minutesStr || '0', 10)
+  return (hours * 60 + minutes) * 60 * 1000
+}
+
 export const AdminEditTestDetail = () => {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -10,7 +26,10 @@ export const AdminEditTestDetail = () => {
   const [name, setName] = useState('')
   const [type, setType] = useState<'TEST' | 'TRYOUT'>('TEST')
   const [description, setDescription] = useState('')
+  const [duration, setDuration] = useState('02:00')
   const [shuffleQuestions, setShuffleQuestions] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false)
   
   // Date states
   const [startDate, setStartDate] = useState('')
@@ -31,7 +50,9 @@ export const AdminEditTestDetail = () => {
           setName(test.name)
           setType(test.type as 'TEST' | 'TRYOUT')
           setDescription(test.description || '')
+          setDuration(msToHhMm(test.quizTimeLimitMs))
           setShuffleQuestions(test.shuffleQuestions)
+          setIsOpen(test.isOpen ?? false)
           
           if (test.openTime) {
             const openD = new Date(test.openTime)
@@ -53,6 +74,25 @@ export const AdminEditTestDetail = () => {
     fetchTest()
   }, [id])
 
+  const handleToggleStatus = async () => {
+    if (!id) return
+    setIsTogglingStatus(true)
+    try {
+      const nextIsOpen = !isOpen
+      const res = await quizApi.updateQuiz(id, { isOpen: nextIsOpen })
+      if (res.success) {
+        setIsOpen(nextIsOpen)
+      } else {
+        alert('Gagal mengubah status ujian.')
+      }
+    } catch (err) {
+      console.error('Failed to toggle quiz status', err)
+      alert('Gagal mengubah status ujian.')
+    } finally {
+      setIsTogglingStatus(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!id) return
@@ -62,6 +102,8 @@ export const AdminEditTestDetail = () => {
       const openTime = new Date(`${startDate}T${startTime}:00`).toISOString()
       const closeTime = new Date(`${endDate}T${endTime}:00`).toISOString()
 
+      const quizTimeLimitMs = hhMmToMs(duration)
+
       const res = await quizApi.updateQuiz(id, {
         name,
         type,
@@ -69,6 +111,8 @@ export const AdminEditTestDetail = () => {
         openTime,
         closeTime,
         shuffleQuestions,
+        isOpen,
+        quizTimeLimitMs,
       })
 
       if (res.success) {
@@ -107,6 +151,60 @@ export const AdminEditTestDetail = () => {
 
         <form onSubmit={handleSubmit} className="w-full space-y-6">
           
+          {/* Status Ujian Card */}
+          <div className="bg-white rounded-3xl shadow-xl p-6 md:p-8 border-2 border-primary/20 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in zoom-in duration-500">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h2 className="text-xl font-bold text-dark">Status Ujian:</h2>
+                {isOpen ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-success/15 text-success border border-success/30">
+                    <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                    Dibuka (Sedang Berlangsung)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-neutral-200 text-neutral-600 border border-neutral-300">
+                    <span className="w-2 h-2 rounded-full bg-neutral-400"></span>
+                    Ditutup
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-neutral-500">
+                {isOpen 
+                  ? 'Ujian saat ini terbuka untuk peserta. Kamu dapat menutupnya secara manual kapan saja.'
+                  : 'Ujian saat ini ditutup dan tidak dapat diakses peserta. Kamu dapat memulainya secara manual.'}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={isTogglingStatus}
+              onClick={handleToggleStatus}
+              className={`px-6 py-3 rounded-xl font-bold text-sm border-2 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 shrink-0 ${
+                isOpen
+                  ? 'bg-danger text-white border-danger hover:bg-danger/80'
+                  : 'bg-success text-white border-success hover:bg-success/80'
+              }`}
+            >
+              {isTogglingStatus ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : isOpen ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                  Tutup Ujian
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                  Mulai / Buka Ujian
+                </>
+              )}
+            </button>
+          </div>
+
           <div className="bg-white rounded-3xl shadow-xl p-6 md:p-10 border-2 border-primary/20 animate-in fade-in zoom-in duration-500">
             <h2 className="text-2xl font-bold text-dark mb-6 border-b-2 border-neutral-100 pb-4">Informasi Dasar</h2>
             
@@ -156,6 +254,19 @@ export const AdminEditTestDetail = () => {
                   className="w-full px-4 py-3 rounded-xl border-2 border-neutral-200 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-dark min-h-[100px] resize-y"
                   required
                 />
+              </div>
+
+              {/* Duration Field */}
+              <div>
+                <label className="block text-sm font-bold text-dark mb-1">Durasi Pengerjaan (hh:mm)</label>
+                <input 
+                  type="time" 
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  className="w-full md:w-48 px-4 py-3 rounded-xl border-2 border-neutral-200 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-dark font-bold"
+                  required
+                />
+                <p className="text-xs text-neutral-500 mt-1">Format jam:menit (Default 02:00 = 2 jam)</p>
               </div>
 
               {/* Acak Soal Toggle */}

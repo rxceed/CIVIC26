@@ -23,6 +23,7 @@ export const AdminDashboard = () => {
             end: q.closeTime,
             status: 'Belum Dimulai', // Dummy status for admin table
             type: q.type,
+            isOpen: q.isOpen,
           }))
           setTryOuts(items.filter(i => i.type === 'TRYOUT'))
           setTests(items.filter(i => i.type === 'TEST'))
@@ -40,6 +41,21 @@ export const AdminDashboard = () => {
     }, 1000)
     return () => clearInterval(timer)
   }, [])
+
+  const handleToggleStatus = async (id: string, newIsOpen: boolean) => {
+    try {
+      const res = await quizApi.updateQuiz(id, { isOpen: newIsOpen })
+      if (res.success) {
+        setTryOuts(prev => prev.map(item => item.id === id ? { ...item, isOpen: newIsOpen } : item))
+        setTests(prev => prev.map(item => item.id === id ? { ...item, isOpen: newIsOpen } : item))
+      } else {
+        alert('Gagal mengubah status ujian.')
+      }
+    } catch (error) {
+      console.error('Failed to toggle quiz status', error)
+      alert('Gagal mengubah status ujian.')
+    }
+  }
 
   const formatTime = (date: Date) => {
     const hours = String(date.getHours()).padStart(2, '0')
@@ -97,7 +113,7 @@ export const AdminDashboard = () => {
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
               </div>
             ) : (
-              <AdminDashboardTable title="Try Out" type="tryout" data={tryOuts} />
+              <AdminDashboardTable title="Try Out" type="tryout" data={tryOuts} onToggleStatus={handleToggleStatus} />
             )}
           </div>
           <div className="w-full lg:w-1/2 flex flex-col min-h-0">
@@ -106,7 +122,7 @@ export const AdminDashboard = () => {
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
               </div>
             ) : (
-              <AdminDashboardTable title="Test" type="test" data={tests} />
+              <AdminDashboardTable title="Test" type="test" data={tests} onToggleStatus={handleToggleStatus} />
             )}
           </div>
         </div>

@@ -29,6 +29,7 @@ export const AdminSelection = () => {
             end: q.closeTime,
             status: 'Belum Dimulai', // Dummy status for admin table
             type: q.type,
+            isOpen: q.isOpen,
           }))
           setTableData(items)
         }
@@ -40,6 +41,20 @@ export const AdminSelection = () => {
     }
     fetchQuizzes()
   }, [isTryOut])
+
+  const handleToggleStatus = async (id: string, newIsOpen: boolean) => {
+    try {
+      const res = await quizApi.updateQuiz(id, { isOpen: newIsOpen })
+      if (res.success) {
+        setTableData(prev => prev.map(item => item.id === id ? { ...item, isOpen: newIsOpen } : item))
+      } else {
+        alert('Gagal mengubah status ujian.')
+      }
+    } catch (error) {
+      console.error('Failed to toggle quiz status', error)
+      alert('Gagal mengubah status ujian.')
+    }
+  }
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-gradient-to-r from-white via-white via-[70%] to-danger/30 p-4 pt-20 md:p-6 md:pt-24 relative flex flex-col">
@@ -68,7 +83,7 @@ export const AdminSelection = () => {
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : (
-            <AdminDashboardTable title={title} type={examType} data={tableData} hideSeeAll={true} />
+            <AdminDashboardTable title={title} type={examType} data={tableData} hideSeeAll={true} onToggleStatus={handleToggleStatus} />
           )}
         </div>
 

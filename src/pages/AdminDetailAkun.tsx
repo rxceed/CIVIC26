@@ -64,22 +64,6 @@ export const AdminDetailAkun = () => {
     fetchData()
   }, [id])
 
-  const handleDelete = async () => {
-    if (!id) return
-    const confirmed = window.confirm('Apakah Anda yakin ingin menghapus akun ini?')
-    if (confirmed) {
-      try {
-        const res = await userApi.deleteUser(id)
-        if (res.success) {
-          alert('Akun berhasil dihapus.')
-          navigate('/admin/list-akun')
-        }
-      } catch (error) {
-        alert('Gagal menghapus akun.')
-      }
-    }
-  }
-
   // Helper to format dates for the table
   const formatDateTime = (dateStr: string | null) => {
     if (!dateStr) return '-'

@@ -1,11 +1,8 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Header } from '../components/Header'
-import { api } from '../api/client'
 
 export const TestResult = () => {
   const navigate = useNavigate()
-  const { type, id } = useParams<{ type: string; id: string }>()
   // We no longer fetch or display the score to participants per the latest requirement.
   return (
     <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-white to-primary/10 flex flex-col font-oxanium text-dark">

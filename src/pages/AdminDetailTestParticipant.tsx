@@ -44,13 +44,6 @@ export const AdminDetailTestParticipant = () => {
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   }
 
-  const getDuration = (start: string | null, end: string | null) => {
-    if (!start || !end) return '-'
-    const diffMs = new Date(end).getTime() - new Date(start).getTime()
-    const mins = Math.round(diffMs / 60000)
-    return `${mins} menit`
-  }
-
   const handleExportExcel = () => {
     if (submissions.length === 0) {
       alert('Tidak ada data peserta untuk di-export.')

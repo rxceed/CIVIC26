@@ -55,7 +55,8 @@ export const PreTest = () => {
         return
       }
 
-      setIsTestOpen(isOpen)
+      const effectiveIsOpen = quiz.isOpen !== undefined ? quiz.isOpen : isOpen
+      setIsTestOpen(effectiveIsOpen)
 
       const h = Math.floor(diff / 3_600_000)
       const m = Math.floor((diff % 3_600_000) / 60_000)
@@ -93,7 +94,12 @@ export const PreTest = () => {
     return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}\n${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
   }
 
-  const durationMinutes = Math.round((new Date(quiz.closeTime).getTime() - new Date(quiz.openTime).getTime()) / 60000)
+  const openMs = new Date(quiz.openTime).getTime()
+  const closeMs = new Date(quiz.closeTime).getTime()
+  const windowDurationMs = closeMs - openMs
+  const limitMs = quiz.quizTimeLimitMs && quiz.quizTimeLimitMs > 0 ? quiz.quizTimeLimitMs : 2 * 60 * 60 * 1000
+  const effectiveMs = windowDurationMs > 0 ? Math.min(limitMs, windowDurationMs) : limitMs
+  const durationMinutes = Math.round(effectiveMs / 60000)
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-gradient-to-r from-white via-white via-[70%] to-danger/30 p-4 pt-20 md:p-6 md:pt-24 relative flex flex-col">

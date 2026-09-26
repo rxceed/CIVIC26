@@ -4,12 +4,21 @@ import { AdminHeader } from '../components/AdminHeader'
 import { quizApi } from '../api/quiz.api'
 import type { Quiz } from '../api/quiz.api'
 
+const hhMmToMs = (hhMm: string): number => {
+  if (!hhMm) return 2 * 60 * 60 * 1000
+  const [hoursStr, minutesStr] = hhMm.split(':')
+  const hours = parseInt(hoursStr || '0', 10)
+  const minutes = parseInt(minutesStr || '0', 10)
+  return (hours * 60 + minutes) * 60 * 1000
+}
+
 export const AdminTambahTest = () => {
   const navigate = useNavigate()
   
   const [name, setName] = useState('')
   const [type, setType] = useState<'TEST' | 'TRYOUT'>('TEST')
   const [description, setDescription] = useState('')
+  const [duration, setDuration] = useState('02:00')
   const [shuffleQuestions, setShuffleQuestions] = useState(false)
   
   // Date states
@@ -60,6 +69,8 @@ export const AdminTambahTest = () => {
       const selectedPaket = paketList.find(p => p.id === selectedPaketId)
       const totalQuestions = selectedPaket?.totalQuestions || 0
 
+      const quizTimeLimitMs = hhMmToMs(duration)
+
       const res = await quizApi.createQuiz({
         name,
         type,
@@ -69,6 +80,8 @@ export const AdminTambahTest = () => {
         totalQuestions,
         sourcePaketId: selectedPaketId,
         shuffleQuestions,
+        isOpen: false,
+        quizTimeLimitMs,
       })
 
       if (res.success) {
@@ -150,6 +163,19 @@ export const AdminTambahTest = () => {
                   className="w-full px-4 py-3 rounded-xl border-2 border-neutral-200 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-dark min-h-[100px] resize-y"
                   required
                 />
+              </div>
+
+              {/* Duration Field */}
+              <div>
+                <label className="block text-sm font-bold text-dark mb-1">Durasi Pengerjaan (hh:mm)</label>
+                <input 
+                  type="time" 
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  className="w-full md:w-48 px-4 py-3 rounded-xl border-2 border-neutral-200 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-dark font-bold"
+                  required
+                />
+                <p className="text-xs text-neutral-500 mt-1">Format jam:menit (Default 02:00 = 2 jam)</p>
               </div>
 
               {/* Acak Soal Toggle */}

@@ -10,6 +10,8 @@ export interface Quiz {
   totalQuestions: number;
   cheatsheetRef: string | null;
   shuffleQuestions: boolean;
+  isOpen: boolean;
+  quizTimeLimitMs: number;
 }
 
 export interface QuizzesResponse {
