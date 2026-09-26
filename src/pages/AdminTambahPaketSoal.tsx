@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AdminHeader } from '../components/AdminHeader'
 import { storageApi } from '../api/storage.api'
@@ -18,7 +18,9 @@ interface Question {
   text: string;
   imageRef: string | null;
   imageUrl: string | null;
-  scoreWeight: number;
+  scoreWeight: number | string;
+  penaltyWeight: number | string;
+  unansweredWeight: number | string;
   acakPilihan: boolean;
   choices: Choice[];
 }
@@ -29,10 +31,7 @@ export const AdminTambahPaketSoal = () => {
   const [paketName, setPaketName] = useState('')
   const [paketDescription, setPaketDescription] = useState('')
   
-  const [cheatsheetImage, setCheatsheetImage] = useState<{ url: string, id: string } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
-  const cheatsheetInputRef = useRef<HTMLInputElement>(null)
 
   const [questions, setQuestions] = useState<Question[]>([
     {
@@ -41,6 +40,8 @@ export const AdminTambahPaketSoal = () => {
       imageRef: null,
       imageUrl: null,
       scoreWeight: 10,
+      penaltyWeight: 0,
+      unansweredWeight: 0,
       acakPilihan: false,
       choices: [
         { id: crypto.randomUUID(), text: '', image: null, isCorrect: false },
@@ -58,6 +59,8 @@ export const AdminTambahPaketSoal = () => {
         imageRef: null,
         imageUrl: null,
         scoreWeight: 10,
+        penaltyWeight: 0,
+        unansweredWeight: 0,
         acakPilihan: false,
         choices: [
           { id: crypto.randomUUID(), text: '', image: null, isCorrect: false },
@@ -75,13 +78,55 @@ export const AdminTambahPaketSoal = () => {
     setQuestions(questions.map(q => q.id === qId ? { ...q, text } : q))
   }
   
-  const handleQuestionScoreChange = (qId: string, value: number) => {
+  const handleQuestionScoreChange = (qId: string, value: string) => {
+    if (value === '' || value === '-' || /^-?\d*(\.\d*)?$/.test(value)) {
+      setQuestions(questions.map(q => {
+        if (q.id === qId) {
+          return { ...q, scoreWeight: value }
+        }
+        return q
+      }))
+    }
+  }
+
+  const handleQuestionPenaltyChange = (qId: string, value: string) => {
+    if (value === '' || value === '-' || /^-?\d*(\.\d*)?$/.test(value)) {
+      setQuestions(questions.map(q => {
+        if (q.id === qId) {
+          return { ...q, penaltyWeight: value }
+        }
+        return q
+      }))
+    }
+  }
+
+  const handleQuestionUnansweredChange = (qId: string, value: string) => {
+    if (value === '' || value === '-' || /^-?\d*(\.\d*)?$/.test(value)) {
+      setQuestions(questions.map(q => {
+        if (q.id === qId) {
+          return { ...q, unansweredWeight: value }
+        }
+        return q
+      }))
+    }
+  }
+
+  const handleWeightBlur = (qId: string, field: 'scoreWeight' | 'penaltyWeight' | 'unansweredWeight', defaultVal: number) => {
     setQuestions(questions.map(q => {
       if (q.id === qId) {
-        return { ...q, scoreWeight: value }
+        const val = q[field]
+        if (val === '' || val === '-' || isNaN(Number(val))) {
+          return { ...q, [field]: defaultVal }
+        }
+        return { ...q, [field]: Number(val) }
       }
       return q
     }))
+  }
+
+  const parseWeight = (val: number | string, defaultVal: number): number => {
+    if (val === '' || val === '-' || isNaN(Number(val))) return defaultVal
+    return Number(val)
   }
   
   const handleQuestionImageUpload = async (qId: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,31 +256,6 @@ export const AdminTambahPaketSoal = () => {
     }))
   }
   
-  const handleCheatsheetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      const ext = file.name.split('.').pop()
-      const imageRefId = crypto.randomUUID()
-      try {
-        const key = `cheatsheets/${imageRefId}.${ext}`
-        const res = await storageApi.uploadFile(key, file)
-        if (res.success) {
-          const url = URL.createObjectURL(file)
-          setCheatsheetImage({ url, id: imageRefId })
-        }
-      } catch (err) {
-        console.error('Failed to upload cheatsheet', err)
-      }
-    }
-  }
-  
-  const handleRemoveCheatsheet = () => {
-    setCheatsheetImage(null)
-    if (cheatsheetInputRef.current) {
-      cheatsheetInputRef.current.value = ''
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -255,7 +275,6 @@ export const AdminTambahPaketSoal = () => {
         description: paketDescription,
         type: 'PAKET',
         totalQuestions: questions.length,
-        cheatsheetRef: cheatsheetImage ? cheatsheetImage.id : null,
       })
 
       if (!quizRes.success) throw new Error('Gagal membuat paket soal')
@@ -280,7 +299,9 @@ export const AdminTambahPaketSoal = () => {
           imageRef: q.imageRef,
           options: options,
           answer: answerChar,
-          scoreWeight: q.scoreWeight || 10,
+          scoreWeight: parseWeight(q.scoreWeight, 10),
+          penaltyWeight: parseWeight(q.penaltyWeight, 0),
+          unansweredWeight: parseWeight(q.unansweredWeight, 0),
           shuffleChoices: q.acakPilihan
         })
       }
@@ -294,7 +315,10 @@ export const AdminTambahPaketSoal = () => {
     }
   }
 
-  const totalScore = questions.reduce((acc, q) => acc + (q.scoreWeight || 0), 0)
+  const totalScore = questions.reduce((acc, q) => {
+    const n = Number(q.scoreWeight)
+    return acc + (isNaN(n) ? 0 : n)
+  }, 0)
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-r from-white via-white via-[70%] to-danger/30 p-4 pt-20 md:p-6 md:pt-24 relative flex flex-col font-oxanium pb-20">
@@ -351,45 +375,6 @@ export const AdminTambahPaketSoal = () => {
             </div>
           </div>
           
-          {/* Cheatsheet Section */}
-          <div className="bg-white rounded-3xl shadow-xl p-6 md:p-10 border-2 border-primary/20">
-            <h2 className="text-2xl font-bold text-dark mb-4 border-b-2 border-neutral-100 pb-4">Cheatsheet</h2>
-            <p className="text-sm text-neutral-500 mb-4">Tambahkan gambar referensi (cheatsheet) yang dapat dilihat peserta sebelum mengerjakan soal.</p>
-            
-            {cheatsheetImage ? (
-              <div className="relative inline-block border-2 border-neutral-200 rounded-xl overflow-hidden shadow-sm group">
-                <img src={cheatsheetImage.url} alt="Cheatsheet" className="max-h-64 object-contain" />
-                <div className="absolute inset-0 bg-dark/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                  <button
-                    type="button"
-                    onClick={handleRemoveCheatsheet}
-                    className="bg-danger text-white p-3 rounded-full hover:bg-danger/80 transition-colors shadow-lg cursor-pointer flex items-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                    </svg>
-                    Hapus
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-primary/50 rounded-xl bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer text-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 mb-2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                </svg>
-                <span className="font-bold text-sm">Unggah Cheatsheet (Opsional)</span>
-                <span className="text-xs text-neutral-500 mt-1">Format: JPG, PNG</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  ref={cheatsheetInputRef}
-                  onChange={handleCheatsheetUpload}
-                />
-              </label>
-            )}
-          </div>
-          
           {/* Questions Section */}
           <div className="space-y-6">
             {questions.map((q, qIndex) => (
@@ -403,9 +388,36 @@ export const AdminTambahPaketSoal = () => {
                       <div className="flex items-center gap-2">
                         <label className="text-xs font-bold text-primary">Bobot Nilai</label>
                         <input 
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           value={q.scoreWeight}
-                          onChange={(e) => handleQuestionScoreChange(q.id, Number(e.target.value))}
+                          onChange={(e) => handleQuestionScoreChange(q.id, e.target.value)}
+                          onBlur={() => handleWeightBlur(q.id, 'scoreWeight', 10)}
+                          onFocus={(e) => e.target.select()}
+                          className="w-16 bg-white text-dark font-bold focus:outline-none text-center border rounded-md"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-danger">Bobot Penalti</label>
+                        <input 
+                          type="text"
+                          inputMode="numeric"
+                          value={q.penaltyWeight}
+                          onChange={(e) => handleQuestionPenaltyChange(q.id, e.target.value)}
+                          onBlur={() => handleWeightBlur(q.id, 'penaltyWeight', 0)}
+                          onFocus={(e) => e.target.select()}
+                          className="w-16 bg-white text-dark font-bold focus:outline-none text-center border rounded-md"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-neutral-600">Bobot Tidak Dijawab</label>
+                        <input 
+                          type="text"
+                          inputMode="numeric"
+                          value={q.unansweredWeight}
+                          onChange={(e) => handleQuestionUnansweredChange(q.id, e.target.value)}
+                          onBlur={() => handleWeightBlur(q.id, 'unansweredWeight', 0)}
+                          onFocus={(e) => e.target.select()}
                           className="w-16 bg-white text-dark font-bold focus:outline-none text-center border rounded-md"
                         />
                       </div>

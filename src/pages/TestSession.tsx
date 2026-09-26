@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { TestType } from '../components/DashboardTable'
 import { cbtApi } from '../api/cbt.api'
 import type { CBTSession } from '../api/cbt.api'
 import { storageApi } from '../api/storage.api'
-import { quizApi } from '../api/quiz.api'
+import { quizApi, type Quiz } from '../api/quiz.api'
 
 // Seeded PRNG (mulberry32)
 function mulberry32(a: number) {
@@ -24,22 +24,39 @@ function hashString(str: string) {
   return hash
 }
 
+// Helpers for persistent image cache per quiz
+const getImageCacheKey = (quizId: string) => `cbt_images_${quizId}`
+
+const loadStoredImageCache = (quizId: string): Record<string, string> => {
+  try {
+    const raw = localStorage.getItem(getImageCacheKey(quizId))
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+const saveStoredImageCache = (quizId: string, cache: Record<string, string>) => {
+  try {
+    localStorage.setItem(getImageCacheKey(quizId), JSON.stringify(cache))
+  } catch (e) {
+    console.error('Failed to save image cache to localStorage', e)
+  }
+}
+
 export const TestSession = () => {
   const { type, id } = useParams<{ type: string; id: string }>()
   const navigate = useNavigate()
   const examType = type as TestType
 
   const [session, setSession] = useState<CBTSession | null>(null)
-  const [questions, setQuestions] = useState<any[]>([])
+  const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [displayQuestions, setDisplayQuestions] = useState<any[]>([])
   const [currentIdx, setCurrentIdx] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   
   const [timeLeft, setTimeLeft] = useState('--:--:--')
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false)
-  const [showHint, setShowHint] = useState(false)
-  const [cheatsheetUrl, setCheatsheetUrl] = useState<string | null>(null)
-  const [hasCheatsheet, setHasCheatsheet] = useState<boolean>(false)
   
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -51,40 +68,171 @@ export const TestSession = () => {
   
   // Track last save time to debounce autosave
   const autosaveTimeout = useRef<any>(null)
+  const isSubmittingRef = useRef(false)
+  const answersRef = useRef<Record<string, string>>({})
+  const imageCacheRef = useRef<Record<string, string>>({})
+
+  // Keep answersRef in sync with state for access in timer tick
+  useEffect(() => {
+    answersRef.current = answers
+  }, [answers])
+
+  // Load image cache from localStorage into ref on mount
+  useEffect(() => {
+    if (id) {
+      imageCacheRef.current = loadStoredImageCache(id)
+    }
+  }, [id])
+
+  // Helper to fetch and cache an image URL
+  const fetchImageUrl = async (storagePrefix: string, cacheKey: string): Promise<string | null> => {
+    // 1. Check in-memory ref cache
+    if (imageCacheRef.current[cacheKey]) {
+      const cached = imageCacheRef.current[cacheKey]
+      if (cached === '__FAILED__') return null
+      return cached
+    }
+
+    // 2. Fetch presigned URL from storage API
+    try {
+      const listRes = await storageApi.listObjects(storagePrefix)
+      if (listRes.success && listRes.data && listRes.data.length > 0) {
+        const presignRes = await storageApi.getPresignedUrl(listRes.data[0].key)
+        if (presignRes.success && presignRes.data?.url) {
+          const url = presignRes.data.url
+          imageCacheRef.current[cacheKey] = url
+          if (id) {
+            saveStoredImageCache(id, imageCacheRef.current)
+          }
+          // Preload into browser cache
+          const img = new Image()
+          img.src = url
+          return url
+        }
+      }
+    } catch (err) {
+      console.error(`Failed to fetch image for ${storagePrefix}`, err)
+    }
+
+    // Mark as failed in memory to prevent repeatedly polling failing images
+    imageCacheRef.current[cacheKey] = '__FAILED__'
+    return null
+  }
+
+  // Background preloader for all question and choice images
+  const prefetchImages = (qList: any[]) => {
+
+    qList.forEach(q => {
+      if (q.imageRef) {
+        const cacheKey = `q_${q.imageRef}`
+        if (!imageCacheRef.current[cacheKey]) {
+          fetchImageUrl(`questions/${q.imageRef}`, cacheKey)
+        }
+      }
+
+      const options = q.displayOptions || [
+        { opt: q.options?.a },
+        { opt: q.options?.b },
+        { opt: q.options?.c },
+        { opt: q.options?.d },
+        { opt: q.options?.e }
+      ]
+
+      options.forEach((optObj: any) => {
+        if (optObj?.opt?.image) {
+          const cacheKey = `c_${optObj.opt.image}`
+          if (!imageCacheRef.current[cacheKey]) {
+            fetchImageUrl(`choices/${optObj.opt.image}`, cacheKey)
+          }
+        }
+      })
+    })
+  }
 
   useEffect(() => {
     const initSession = async () => {
       if (!id) return
       try {
-        const res = await cbtApi.startSession(id)
-        if (res.success && res.data) {
-          const fetchedSession = res.data.session
-          const fetchedQuestions = res.data.questions
-          
-          setSession(fetchedSession)
-          setQuestions(fetchedQuestions)
+        const sessionCacheKey = `cbt_session_${id}`
+        const answersCacheKey = `cbt_answers_${id}`
 
-          // Load previous answers
-          if (fetchedSession.answers) {
+        // 1. Check if session, questions, seed, and quiz are cached locally
+        const cachedRaw = localStorage.getItem(sessionCacheKey)
+        let fetchedSession: CBTSession | null = null
+        let fetchedQuestions: any[] = []
+        let fetchedQuiz: Quiz | null = null
+
+        if (cachedRaw) {
+          try {
+            const cached = JSON.parse(cachedRaw)
+            if (cached.session && Array.isArray(cached.questions) && cached.questions.length > 0) {
+              fetchedSession = cached.session
+              fetchedQuestions = cached.questions
+              fetchedQuiz = cached.quiz || null
+            }
+          } catch (e) {
+            console.error('Failed to parse cached session', e)
+          }
+        }
+
+        // 2. Only hit DB once if not cached
+        if (!fetchedSession || fetchedQuestions.length === 0) {
+          const res = await cbtApi.startSession(id)
+          if (res.success && res.data) {
+            fetchedSession = res.data.session
+            fetchedQuestions = res.data.questions
+
+            // Fetch quiz details once for openTime and closeTime
+            try {
+              const quizRes = await quizApi.getQuizById(fetchedSession.quizId)
+              if (quizRes.success) {
+                fetchedQuiz = quizRes.data
+              }
+            } catch (err) {
+              console.error('Failed to fetch quiz details', err)
+            }
+
+            // Cache session, questions, seed, and quiz to localStorage
+            localStorage.setItem(sessionCacheKey, JSON.stringify({
+              session: fetchedSession,
+              questions: fetchedQuestions,
+              shuffleSeed: fetchedSession.shuffleSeed,
+              quiz: fetchedQuiz
+            }))
+          }
+        }
+
+        if (fetchedSession && fetchedQuestions.length > 0) {
+          setSession(fetchedSession)
+          if (fetchedQuiz) setQuiz(fetchedQuiz)
+
+          // Load answers: prioritize localStorage cached answers, fallback to fetchedSession.answers
+          const cachedAnswersRaw = localStorage.getItem(answersCacheKey)
+          if (cachedAnswersRaw) {
+            try {
+              const parsedAnswers = JSON.parse(cachedAnswersRaw)
+              setAnswers(parsedAnswers)
+              answersRef.current = parsedAnswers
+            } catch (e) {
+              console.error('Failed to parse cached answers', e)
+            }
+          } else if (fetchedSession.answers && fetchedSession.answers.length > 0) {
             const initialAnswers: Record<string, string> = {}
             fetchedSession.answers.forEach((ans: any) => {
               initialAnswers[ans.id] = ans.answer
             })
             setAnswers(initialAnswers)
+            answersRef.current = initialAnswers
+            localStorage.setItem(answersCacheKey, JSON.stringify(initialAnswers))
           }
 
-          // Shuffle logic
+          // Deterministic shuffle logic using cached shuffleSeed
+          let mappedQ: any[] = []
           if (fetchedSession.shuffleSeed) {
             const seed = fetchedSession.shuffleSeed
             const prng = mulberry32(hashString(seed))
             
             let shufQ = [...fetchedQuestions]
-            // We assume quiz.shuffleQuestions is true by default for test, 
-            // wait, we don't have quiz object here. Let's just always shuffle if seed exists, 
-            // or the backend already knows if it should shuffle? 
-            // Since backend didn't send quiz.shuffleQuestions, we will just shuffle questions always if a seed is provided
-            // Actually, wait, let's check if the backend sent quiz object. No, it didn't. 
-            // Let's just shuffle questions deterministically.
             for (let i = shufQ.length - 1; i > 0; i--) {
               const j = Math.floor(prng() * (i + 1))
               const temp = shufQ[i]
@@ -92,7 +240,7 @@ export const TestSession = () => {
               shufQ[j] = temp
             }
 
-            const mappedQ = shufQ.map((q) => {
+            mappedQ = shufQ.map((q) => {
               const allOpts = [
                 { key: 'a', opt: q.options.a },
                 { key: 'b', opt: q.options.b },
@@ -115,8 +263,7 @@ export const TestSession = () => {
             })
             setDisplayQuestions(mappedQ)
           } else {
-            // Fallback if no seed (should not happen)
-            setDisplayQuestions(fetchedQuestions.map(q => ({
+            mappedQ = fetchedQuestions.map(q => ({
               ...q, 
               displayOptions: [
                 { key: 'a', opt: q.options.a },
@@ -125,25 +272,12 @@ export const TestSession = () => {
                 { key: 'd', opt: q.options.d },
                 { key: 'e', opt: q.options.e }
               ].filter(o => o.opt && (o.opt.text || o.opt.image))
-            })))
+            }))
+            setDisplayQuestions(mappedQ)
           }
 
-          // Load cheatsheet if available
-          try {
-            const quizRes = await quizApi.getQuizById(fetchedSession.quizId)
-            if (quizRes.success && quizRes.data && quizRes.data.cheatsheetRef) {
-              setHasCheatsheet(true)
-              const listRes = await storageApi.listObjects(`cheatsheets/${quizRes.data.cheatsheetRef}`)
-              if (listRes.success && listRes.data.length > 0) {
-                const presignRes = await storageApi.getPresignedUrl(listRes.data[0].key)
-                if (presignRes.success) {
-                  setCheatsheetUrl(presignRes.data.url)
-                }
-              }
-            }
-          } catch (e) {
-            console.error('Failed to load cheatsheet', e)
-          }
+          // Start background prefetching of all question & choice images
+          prefetchImages(mappedQ)
         }
       } catch (error) {
         console.error('Failed to start session', error)
@@ -154,19 +288,27 @@ export const TestSession = () => {
     initSession()
   }, [id])
 
-  // Timer logic
+  // Timer logic: maximum duration is remaining time until closeTime (no extra time for starting late)
   useEffect(() => {
     if (!session || isSubmitting) return
 
-    // Since we don't have quiz closeTime directly here, we just use a 2 hour duration from startTime as fallback,
-    // but ideally we should fetch quiz to get closeTime. For now, 2 hours limit from start time.
-    const startTime = new Date(session.startTime).getTime()
-    const durationMs = 2 * 60 * 60 * 1000 // 2 hours
-    const maxCloseTime = startTime + durationMs
+    // Since the policy is "no extra time for those that started late",
+    // the maximum duration is the remaining time between start time and close time.
+    // The test deadline is strictly closeTime from the quiz GET API.
+    const closeTimeStr = quiz?.closeTime
+    let deadlineMs: number
+
+    if (closeTimeStr) {
+      deadlineMs = new Date(closeTimeStr).getTime()
+    } else {
+      // Fallback: 2 hours from session start time
+      const startTimeMs = session.startTime ? new Date(session.startTime).getTime() : Date.now()
+      deadlineMs = startTimeMs + 2 * 60 * 60 * 1000
+    }
 
     const tick = () => {
-      const now = new Date().getTime()
-      let diff = maxCloseTime - now
+      const now = Date.now()
+      let diff = deadlineMs - now
       
       if (diff <= 0) {
         diff = 0
@@ -184,7 +326,7 @@ export const TestSession = () => {
     tick()
     const timer = setInterval(tick, 1000)
     return () => clearInterval(timer)
-  }, [session, isSubmitting])
+  }, [session, quiz, isSubmitting])
 
   // Anti-cheat visibility listener
   useEffect(() => {
@@ -200,51 +342,60 @@ export const TestSession = () => {
   }, [session, isSubmitting])
 
   useEffect(() => {
-    setShowHint(false)
     setQuestionImageUrl(null)
     setQuestionImageFailed(false)
     setOptionImages({})
     
-    // Lazy load question image if it has one
     const loadQImages = async () => {
       const q = displayQuestions[currentIdx]
       if (!q) return
 
-      // Load question image
+      // Load question image with cache check
       if (q.imageRef) {
-        try {
-          const listRes = await storageApi.listObjects(`questions/${q.imageRef}`)
-          if (listRes.success && listRes.data.length > 0) {
-            const presignRes = await storageApi.getPresignedUrl(listRes.data[0].key)
-            if (presignRes.success) {
-              setQuestionImageUrl(presignRes.data.url)
-            }
+        const cacheKey = `q_${q.imageRef}`
+        if (imageCacheRef.current[cacheKey] && imageCacheRef.current[cacheKey] !== '__FAILED__') {
+          setQuestionImageUrl(imageCacheRef.current[cacheKey])
+        } else if (imageCacheRef.current[cacheKey] === '__FAILED__') {
+          setQuestionImageFailed(true)
+        } else {
+          const url = await fetchImageUrl(`questions/${q.imageRef}`, cacheKey)
+          if (url) {
+            setQuestionImageUrl(url)
           } else {
             setQuestionImageFailed(true)
           }
-        } catch (e) {
-          console.error(e)
-          setQuestionImageFailed(true)
         }
       }
 
-      // Load option images
+      // Load option images with cache check
       if (q.displayOptions) {
         const newOptImages: Record<string, string> = {}
-        await Promise.all(q.displayOptions.map(async (optObj: any) => {
-          if (optObj.opt.image) {
-            try {
-               const listRes = await storageApi.listObjects(`choices/${optObj.opt.image}`)
-               if (listRes.success && listRes.data.length > 0) {
-                 const presignRes = await storageApi.getPresignedUrl(listRes.data[0].key)
-                 if (presignRes.success) {
-                    newOptImages[optObj.key] = presignRes.data.url
-                 }
-               }
-            } catch (e) { console.error(e) }
+        const uncachedOptions: any[] = []
+
+        q.displayOptions.forEach((optObj: any) => {
+          if (optObj.opt?.image) {
+            const cacheKey = `c_${optObj.opt.image}`
+            if (imageCacheRef.current[cacheKey] && imageCacheRef.current[cacheKey] !== '__FAILED__') {
+              newOptImages[optObj.key] = imageCacheRef.current[cacheKey]
+            } else if (imageCacheRef.current[cacheKey] !== '__FAILED__') {
+              uncachedOptions.push(optObj)
+            }
           }
-        }))
-        setOptionImages(newOptImages)
+        })
+
+        if (Object.keys(newOptImages).length > 0) {
+          setOptionImages(prev => ({ ...prev, ...newOptImages }))
+        }
+
+        if (uncachedOptions.length > 0) {
+          await Promise.all(uncachedOptions.map(async (optObj: any) => {
+            const cacheKey = `c_${optObj.opt.image}`
+            const url = await fetchImageUrl(`choices/${optObj.opt.image}`, cacheKey)
+            if (url) {
+              setOptionImages(prev => ({ ...prev, [optObj.key]: url }))
+            }
+          }))
+        }
       }
     }
     
@@ -254,12 +405,48 @@ export const TestSession = () => {
   const handleSelect = (qId: string, answerKey: string) => {
     setAnswers(prev => {
       const next = { ...prev, [qId]: answerKey }
-      
+      answersRef.current = next
+
+      if (id) {
+        try {
+          localStorage.setItem(`cbt_answers_${id}`, JSON.stringify(next))
+        } catch (e) {
+          console.error('Failed to save answers to localStorage', e)
+        }
+      }
+
       // Debounced Autosave
       if (autosaveTimeout.current) clearTimeout(autosaveTimeout.current)
       autosaveTimeout.current = setTimeout(() => {
         if (session) {
-          const payload = Object.entries(next).map(([id, answer]) => ({ id, answer }))
+          const payload = Object.entries(next).map(([qid, answer]) => ({ id: qid, answer }))
+          cbtApi.autosave(session.id, payload).catch(console.error)
+        }
+      }, 1000)
+
+      return next
+    })
+  }
+
+  const handleClearAnswer = (qId: string) => {
+    setAnswers(prev => {
+      const next = { ...prev }
+      delete next[qId]
+      answersRef.current = next
+
+      if (id) {
+        try {
+          localStorage.setItem(`cbt_answers_${id}`, JSON.stringify(next))
+        } catch (e) {
+          console.error('Failed to save answers to localStorage', e)
+        }
+      }
+
+      // Debounced Autosave
+      if (autosaveTimeout.current) clearTimeout(autosaveTimeout.current)
+      autosaveTimeout.current = setTimeout(() => {
+        if (session) {
+          const payload = Object.entries(next).map(([qid, answer]) => ({ id: qid, answer }))
           cbtApi.autosave(session.id, payload).catch(console.error)
         }
       }, 1000)
@@ -269,19 +456,32 @@ export const TestSession = () => {
   }
 
   const handleFinalSubmit = async () => {
-    if (!session || isSubmitting) return
+    if (!session || isSubmittingRef.current) return
+    isSubmittingRef.current = true
     setIsSubmitting(true)
     setIsSubmitModalOpen(false)
     
-    const payload = Object.entries(answers).map(([id, answer]) => ({ id, answer }))
+    if (autosaveTimeout.current) clearTimeout(autosaveTimeout.current)
+
+    const payload = Object.entries(answersRef.current).map(([qid, answer]) => ({ id: qid, answer }))
     try {
       const res = await cbtApi.submit(session.id, payload)
       if (res.success) {
+        if (id) {
+          localStorage.removeItem(`cbt_session_${id}`)
+          localStorage.removeItem(`cbt_answers_${id}`)
+          localStorage.removeItem(getImageCacheKey(id))
+        }
         navigate(`/thank-you/${examType}/${id}`)
+      } else {
+        alert("Gagal mengirim jawaban. Silakan coba lagi.")
+        isSubmittingRef.current = false
+        setIsSubmitting(false)
       }
     } catch (error) {
       console.error(error)
       alert("Gagal mengirim jawaban. Silakan coba lagi.")
+      isSubmittingRef.current = false
       setIsSubmitting(false)
     }
   }
@@ -311,44 +511,7 @@ export const TestSession = () => {
       {/* Main Test Layout */}
       <div className="flex-grow flex min-h-0 relative overflow-hidden">
         
-        {/* Animated Hint Panel (Left) */}
-        <div className={`transition-all duration-500 ease-in-out shrink-0 ${showHint ? 'w-full md:w-1/3 opacity-100 border-r border-primary/20' : 'w-0 opacity-0 overflow-hidden'} bg-neutral-50 flex flex-col h-full`}>
-          <div className="p-4 md:p-6 min-w-[320px] flex flex-col h-full">
-            <div className="flex justify-between items-center mb-6 shrink-0">
-              <h3 className="font-bold text-lg text-primary flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.493 1.509 1.333 1.509 2.316V18" />
-                </svg>
-                Cheatsheet
-              </h3>
-              <button 
-                onClick={() => setShowHint(false)}
-                className="p-2 hover:bg-neutral-200 rounded-lg transition-colors text-neutral-500 hover:text-dark cursor-pointer"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="flex-grow rounded-2xl overflow-hidden border-2 border-neutral-200 bg-white shadow-inner flex items-center justify-center p-2 relative">
-              {cheatsheetUrl ? (
-                <img src={cheatsheetUrl} alt="Cheatsheet" className="max-w-full max-h-[80vh] object-contain rounded-xl" />
-              ) : hasCheatsheet ? (
-                <img src="https://placehold.co/600x400/eeeeee/999999?text=Cheatsheet+Loading..." alt="Dummy Cheatsheet" className="max-w-full max-h-[80vh] object-contain rounded-xl" />
-              ) : (
-                <div className="w-full h-full bg-neutral-100 rounded-xl flex flex-col items-center justify-center text-neutral-400 border-2 border-dashed border-neutral-300 p-4 text-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mb-2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                  </svg>
-                  <span className="font-bold text-sm">Tidak Ada Cheatsheet</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Center: Question Area (75%) */}
+        {/* Center: Question Area */}
         <div className="flex-1 flex flex-col min-w-0 bg-primary/5 transition-all duration-500">
           <div className="flex-grow p-6 md:p-12 overflow-y-auto">
             
@@ -358,13 +521,7 @@ export const TestSession = () => {
               </span>
               <button
                 className="text-neutral-400 hover:text-danger text-sm font-bold transition-colors cursor-pointer"
-                onClick={() => {
-                  setAnswers(prev => {
-                    const next = { ...prev }
-                    delete next[q.id]
-                    return next
-                  })
-                }}
+                onClick={() => handleClearAnswer(q.id)}
               >
                 Hapus Jawaban
               </button>
@@ -442,40 +599,22 @@ export const TestSession = () => {
             <button
               onClick={() => setCurrentIdx(prev => Math.max(0, prev - 1))}
               disabled={currentIdx === 0}
-              className="px-6 py-2.5 rounded-xl font-bold text-dark border-2 border-neutral-200 hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer hidden md:block w-[140px]"
+              className="px-6 py-2.5 rounded-xl font-bold text-dark border-2 border-neutral-200 hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer w-[140px]"
             >
               Kembali
             </button>
             
             <button
               onClick={() => setIsSubmitModalOpen(true)}
-              className="md:hidden px-6 py-2.5 rounded-xl font-bold text-light bg-danger border-2 border-danger hover:bg-danger/80 transition-all cursor-pointer"
+              className="lg:hidden px-6 py-2.5 rounded-xl font-bold text-light bg-danger border-2 border-danger hover:bg-danger/80 transition-all cursor-pointer"
             >
               Selesai
-            </button>
-
-            {/* HINT BUTTON */}
-            <button
-              onClick={() => setShowHint(!showHint)}
-              disabled={!hasCheatsheet}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold border-2 transition-all ${
-                hasCheatsheet
-                  ? showHint 
-                    ? 'bg-warning/20 border-warning text-warning-800 hover:bg-warning/30 cursor-pointer'
-                    : 'bg-warning text-warning-900 border-warning hover:bg-warning/90 cursor-pointer shadow-sm'
-                  : 'bg-neutral-100 border-neutral-200 text-neutral-400 cursor-not-allowed opacity-60'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.493 1.509 1.333 1.509 2.316V18" />
-              </svg>
-              {showHint ? 'Tutup Hint' : 'Buka Hint'}
             </button>
 
             <button
               onClick={() => setCurrentIdx(prev => Math.min(total - 1, prev + 1))}
               disabled={currentIdx === total - 1}
-              className="px-6 py-2.5 rounded-xl font-bold text-light bg-primary border-2 border-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer hidden md:block w-[140px]"
+              className="px-6 py-2.5 rounded-xl font-bold text-light bg-primary border-2 border-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer w-[140px]"
             >
               Selanjutnya
             </button>

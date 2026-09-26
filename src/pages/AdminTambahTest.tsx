@@ -66,7 +66,6 @@ export const AdminTambahTest = () => {
         description,
         openTime,
         closeTime,
-        isOpen: true,
         totalQuestions,
         sourcePaketId: selectedPaketId,
         shuffleQuestions,

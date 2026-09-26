@@ -26,6 +26,8 @@ export interface Question {
   options: QuestionOptions
   answer: string
   scoreWeight: number
+  penaltyWeight: number
+  unansweredWeight: number
   imageRef: string | null
   shuffleChoices: boolean
 }
@@ -36,8 +38,17 @@ export const questionApi = {
     return data
   },
   
-  createQuestion: async (payload: Omit<Question, 'id'>): Promise<ApiResponse<Question>> => {
-    const { data } = await api.post<ApiResponse<Question>>('/questions', payload)
+  createQuestion: async (
+    payload: Omit<Question, 'id' | 'penaltyWeight' | 'unansweredWeight'> & {
+      penaltyWeight?: number
+      unansweredWeight?: number
+    }
+  ): Promise<ApiResponse<Question>> => {
+    const { data } = await api.post<ApiResponse<Question>>('/questions', {
+      penaltyWeight: 0,
+      unansweredWeight: 0,
+      ...payload
+    })
     return data
   },
 

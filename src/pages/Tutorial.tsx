@@ -1,34 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { quizApi } from '../api/quiz.api'
-import type { Quiz } from '../api/quiz.api'
-import { storageApi } from '../api/storage.api'
 
 const tutorialQuestions = [
   {
     id: 1,
     text: "Selamat datang di Tutorial! Ini adalah contoh tampilan soal. Untuk menjawab, pilih salah satu opsi di bawah ini. Coba klik opsi A.",
     options: ['Ini opsi A (Klik aku)', 'Ini opsi B', 'Ini opsi C', 'Ini opsi D', 'Ini opsi E'],
-    hasHint: false
   },
   {
     id: 2,
-    text: "Sebuah Test atau Try Out bisa saja memiliki petunjuk yang dapat kamu pakai. Coba lihat tombol 'Hint' berwarna oranye di bagian bawah. Klik tombol 'Hint' untuk memunculkan gambar di sisi kiri.",
-    options: ['Wah, keren!', 'Gambarnya muncul!', 'Sangat interaktif', 'Paham', 'Luar Biasa'],
-    hasHint: true,
-    hintImage: 'Gambar Ilustrasi/Grafik'
+    text: "Di sisi kanan, kamu bisa melihat navigasi soal. Nomor soal yang sudah dijawab akan berwarna biru.",
+    options: ['Pilihan A', 'Pilihan B', 'Pilihan C', 'Pilihan D', 'Pilihan E'],
   },
   {
     id: 3,
-    text: "Bagus! Di sisi kanan, kamu bisa melihat navigasi soal. Nomor soal yang sudah dijawab akan berwarna biru.",
-    options: ['Pilihan A', 'Pilihan B', 'Pilihan C', 'Pilihan D', 'Pilihan E'],
-    hasHint: false
-  },
-  {
-    id: 4,
-    text: "Kamu juga bisa melompat ke soal mana pun mengeklik nomor di panel kanan. Jika sudah paham, pilih salah satu opsi dan klik 'Selesaikan Tutorial'.",
+    text: "Kamu juga bisa melompat ke soal mana pun dengan mengeklik nomor di panel kanan atau tombol navigasi di bawah. Jika sudah paham, pilih salah satu opsi dan klik 'Selesaikan Tutorial'.",
     options: ['Saya Paham', 'Jelas', 'Sangat Jelas', 'Mengerti', 'Siap Ujian'],
-    hasHint: false
   }
 ]
 
@@ -38,42 +25,9 @@ export const Tutorial = () => {
 
   const [currentIdx, setCurrentIdx] = useState(0)
   const [answers, setAnswers] = useState<Record<number, number>>({})
-  const [showHint, setShowHint] = useState(false)
-
-  const [quiz, setQuiz] = useState<Quiz | null>(null)
-  const [cheatsheetUrl, setCheatsheetUrl] = useState<string | null>('https://placehold.co/400x300?text=Contoh+Cheatsheet+Tutorial')
-
-  useEffect(() => {
-    const fetchQuizAndCheatsheet = async () => {
-      if (!id) return
-      try {
-        const quizRes = await quizApi.getQuizById(id)
-        if (quizRes.success && quizRes.data) {
-          setQuiz(quizRes.data)
-          if (quizRes.data.cheatsheetRef) {
-            const listRes = await storageApi.listObjects(`cheatsheets/${quizRes.data.cheatsheetRef}`)
-            if (listRes.success && listRes.data.length > 0) {
-              const presignRes = await storageApi.getPresignedUrl(listRes.data[0].key)
-              if (presignRes.success) {
-                setCheatsheetUrl(presignRes.data.url)
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load tutorial data', error)
-      }
-    }
-    fetchQuizAndCheatsheet()
-  }, [id])
 
   const total = tutorialQuestions.length
   const q = tutorialQuestions[currentIdx]
-
-  // Reset hint when changing questions
-  useEffect(() => {
-    setShowHint(false)
-  }, [currentIdx])
 
   const handleSelect = (optionIdx: number) => {
     setAnswers(prev => ({ ...prev, [currentIdx]: optionIdx }))
@@ -96,41 +50,6 @@ export const Tutorial = () => {
 
       {/* Main Test Layout */}
       <div className="flex-grow flex min-h-0 relative overflow-hidden">
-
-        {/* Animated Hint Panel (Left) */}
-        <div className={`transition-all duration-500 ease-in-out shrink-0 ${showHint ? 'w-full md:w-1/4 opacity-100 border-r border-primary/20' : 'w-0 opacity-0 overflow-hidden'} bg-neutral-50 flex flex-col h-full`}>
-          <div className="p-4 md:p-6 min-w-[320px] flex flex-col h-full">
-            <div className="flex justify-between items-center mb-6 shrink-0">
-              <h3 className="font-bold text-lg text-primary flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.493 1.509 1.333 1.509 2.316V18" />
-                </svg>
-                Cheatsheet
-              </h3>
-              <button
-                onClick={() => setShowHint(false)}
-                className="p-2 hover:bg-neutral-200 rounded-lg transition-colors text-neutral-500 hover:text-dark"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="flex-grow rounded-2xl overflow-hidden border-2 border-neutral-200 bg-white shadow-inner flex items-center justify-center p-2 relative">
-              {cheatsheetUrl ? (
-                <img src={cheatsheetUrl} alt="Cheatsheet" className="max-w-full max-h-[80vh] object-contain rounded-xl" />
-              ) : (
-                <div className="w-full h-full bg-neutral-100 rounded-xl flex flex-col items-center justify-center text-neutral-400 border-2 border-dashed border-neutral-300 p-4 text-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mb-2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                  </svg>
-                  <span className="font-bold text-sm">Cheatsheet</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
 
         {/* Center: Question Area */}
         <div className="flex-1 flex flex-col min-w-0 bg-primary/5 transition-all duration-500">
@@ -193,23 +112,6 @@ export const Tutorial = () => {
               Kembali
             </button>
 
-            {/* HINT BUTTON */}
-            <button
-              onClick={() => setShowHint(!showHint)}
-              disabled={!cheatsheetUrl}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold border-2 transition-all ${cheatsheetUrl
-                ? showHint
-                  ? 'bg-warning/20 border-warning text-warning-800 hover:bg-warning/30 cursor-pointer'
-                  : 'bg-warning text-warning-900 border-warning hover:bg-warning/90 cursor-pointer shadow-sm'
-                : 'bg-neutral-100 border-neutral-200 text-neutral-400 cursor-not-allowed opacity-60'
-                }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.493 1.509 1.333 1.509 2.316V18" />
-              </svg>
-              {showHint ? 'Tutup Hint' : 'Buka Hint'}
-            </button>
-
             <button
               onClick={() => setCurrentIdx(prev => Math.min(total - 1, prev + 1))}
               disabled={currentIdx === total - 1}
@@ -237,7 +139,7 @@ export const Tutorial = () => {
 
           <div className="flex-grow p-6 overflow-y-auto">
             <div className="grid grid-cols-5 gap-2">
-              {tutorialQuestions.map((qItem, i) => {
+              {tutorialQuestions.map((_, i) => {
                 const isAnswered = answers[i] !== undefined
                 const isCurrent = currentIdx === i
 
@@ -253,8 +155,6 @@ export const Tutorial = () => {
                     className={`aspect-square rounded-lg border flex items-center justify-center font-bold text-sm transition-all cursor-pointer relative ${style} ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                   >
                     {i + 1}
-                    {/* Tiny dot to indicate it has a hint */}
-                    {qItem.hasHint && <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-warning rounded-full" />}
                   </button>
                 )
               })}
