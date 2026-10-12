@@ -43,6 +43,8 @@ npm run build
 ```
 This will compile TypeScript and bundle the application into the `dist` folder.
 
+For full instructions on serving the built application with NGINX, reverse proxying the backend API, and configuring SSL/HTTPS, see [NGINX_SETUP.md](./NGINX_SETUP.md).
+
 ## Key Features
 - **Admin Dashboard:** Manage quizzes, questions, accounts, and view detailed participant analytics (with Excel export).
 - **Participant Flow:** Secure login, pre-test tutorials, timed test sessions with anti-cheat measures (e.g., tracking tab-switching), and dynamic question/option shuffling.
