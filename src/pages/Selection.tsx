@@ -70,29 +70,29 @@ export const Selection = () => {
   }, [isTryOut, title])
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gradient-to-r from-white via-white via-[70%] to-danger/30 p-4 pt-20 md:p-6 md:pt-24 relative flex flex-col">
+    <div className="min-h-screen w-full overflow-y-auto bg-gradient-to-r from-white via-white via-[70%] to-danger/30 p-3 pt-20 sm:p-4 sm:pt-24 md:p-6 md:pt-24 relative flex flex-col pb-6">
       <Header showProfile />
 
       <div className="w-full max-w-5xl mx-auto flex-grow flex flex-col gap-4 min-h-0">
 
         {/* Page heading & back button */}
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
           <button
             onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 font-oxanium text-sm text-dark hover:text-primary transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 sm:gap-2 font-oxanium text-xs sm:text-sm text-dark hover:text-primary transition-colors cursor-pointer shrink-0"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 sm:w-5 sm:h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
             Kembali
           </button>
-          <h1 className="font-slant text-3xl md:text-4xl text-dark">Daftar {title}</h1>
+          <h1 className="font-slant text-2xl sm:text-3xl md:text-4xl text-dark truncate">Daftar {title}</h1>
         </div>
 
         {/* Full table */}
-        <div className="flex-grow min-h-0">
+        <div className="flex-grow min-h-[350px]">
           {isLoading ? (
-            <div className="h-full flex items-center justify-center bg-light border-2 border-primary rounded-3xl">
+            <div className="h-full min-h-[250px] flex items-center justify-center bg-light border-2 border-primary rounded-2xl sm:rounded-3xl">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : (

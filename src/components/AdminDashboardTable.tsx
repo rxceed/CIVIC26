@@ -55,28 +55,28 @@ export const AdminDashboardTable = ({
   }
 
   return (
-    <div className="bg-light border-2 border-primary rounded-3xl p-5 md:p-6 shadow-md flex flex-col min-h-0 h-full">
-      <div className="flex justify-between items-center mb-4 shrink-0">
-        <h3 className="text-3xl md:text-4xl font-slant text-dark">{title}</h3>
+    <div className="bg-light border-2 border-primary rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-md flex flex-col min-h-0 h-full">
+      <div className="flex justify-between items-center mb-3 sm:mb-4 shrink-0 gap-2">
+        <h3 className="text-2xl sm:text-3xl md:text-4xl font-slant text-dark truncate">{title}</h3>
         {!hideSeeAll && (
           <button
             onClick={() => navigate(`/admin/${type}`)}
-            className="font-oxanium text-xs md:text-sm font-bold text-primary border-2 border-primary rounded-xl px-4 py-1.5 md:px-5 md:py-2 hover:bg-primary hover:text-light transition-all shadow-sm cursor-pointer"
+            className="font-oxanium text-xs md:text-sm font-bold text-primary border-2 border-primary rounded-xl px-3 py-1 sm:px-4 sm:py-1.5 md:px-5 md:py-2 hover:bg-primary hover:text-light transition-all shadow-sm cursor-pointer shrink-0"
           >
             Lihat Semua
           </button>
         )}
       </div>
 
-      <div className="overflow-y-auto overflow-x-hidden flex-grow rounded-lg">
-        <table className="w-full table-fixed text-left font-oxanium text-sm md:text-base border-collapse text-black">
+      <div className="overflow-y-auto overflow-x-auto flex-grow rounded-lg border border-primary/10">
+        <table className="w-full min-w-[580px] text-left font-oxanium text-xs sm:text-sm md:text-base border-collapse text-black">
           <thead className="sticky top-0 bg-light z-10">
             <tr className="text-dark text-xs md:text-sm">
-              <th className="pb-3 px-2 md:px-3 font-normal w-[26%]">{title}</th>
-              <th className="pb-3 px-2 md:px-3 font-normal text-center w-[18%]">Status</th>
-              <th className="pb-3 px-2 md:px-3 font-normal text-center w-[20%]">Waktu Mulai</th>
-              {!compact && <th className="pb-3 px-2 md:px-3 font-normal text-center w-[20%]">Waktu Berakhir</th>}
-              <th className="pb-3 px-2 md:px-3 font-normal text-right w-[16%]">Aksi</th>
+              <th className="pb-3 px-2 md:px-3 font-semibold">{title}</th>
+              <th className="pb-3 px-2 md:px-3 font-semibold text-center">Status</th>
+              <th className="pb-3 px-2 md:px-3 font-semibold text-center">Waktu Mulai</th>
+              {!compact && <th className="pb-3 px-2 md:px-3 font-semibold text-center">Waktu Berakhir</th>}
+              <th className="pb-3 px-2 md:px-3 font-semibold text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>

@@ -57,6 +57,7 @@ export const TestSession = () => {
   
   const [timeLeft, setTimeLeft] = useState('--:--:--')
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false)
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false)
   
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -534,11 +535,21 @@ export const TestSession = () => {
     <div className="h-screen w-screen overflow-hidden bg-white flex flex-col font-oxanium text-dark relative">
       
       {/* Header Bar */}
-      <div className="h-16 shrink-0 border-b border-primary/20 flex items-center justify-between px-6 bg-light shadow-sm z-10">
-        <h1 className="font-slant text-2xl text-primary">CBT SESSION</h1>
-        <div className="flex items-center gap-3">
+      <div className="h-16 shrink-0 border-b border-primary/20 flex items-center justify-between px-3 sm:px-6 bg-light shadow-sm z-10 gap-2">
+        <h1 className="font-slant text-lg sm:text-2xl text-primary truncate">CBT SESSION</h1>
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button
+            onClick={() => setIsNavDrawerOpen(true)}
+            className="lg:hidden flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-primary/40 text-primary text-xs font-bold hover:bg-primary/10 transition-colors cursor-pointer"
+            title="Buka Navigasi Soal"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+            <span>{currentIdx + 1}/{total}</span>
+          </button>
           <span className="text-sm text-neutral-400 hidden sm:inline">Sisa Waktu</span>
-          <span className={`font-slant text-2xl ${timeLeft.startsWith('00:0') ? 'text-danger animate-pulse' : 'text-dark'}`}>
+          <span className={`font-slant text-lg sm:text-2xl ${timeLeft.startsWith('00:0') ? 'text-danger animate-pulse' : 'text-dark'}`}>
             {timeLeft}
           </span>
         </div>
@@ -549,7 +560,7 @@ export const TestSession = () => {
         
         {/* Center: Question Area */}
         <div className="flex-1 flex flex-col min-w-0 bg-primary/5 transition-all duration-500">
-          <div className="flex-grow p-6 md:p-12 overflow-y-auto">
+          <div className="flex-grow p-4 sm:p-6 md:p-12 overflow-y-auto">
             
             <div className="mb-8 flex justify-between items-start">
               <span className="inline-block bg-primary text-light font-bold text-sm px-3 py-1 rounded-lg mb-4">
@@ -631,18 +642,18 @@ export const TestSession = () => {
           </div>
 
           {/* Bottom Bar: Navigation */}
-          <div className="shrink-0 bg-white border-t border-primary/20 p-4 md:px-8 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <div className="shrink-0 bg-white border-t border-primary/20 p-3 sm:p-4 md:px-8 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] gap-2">
             <button
               onClick={() => setCurrentIdx(prev => Math.max(0, prev - 1))}
               disabled={currentIdx === 0}
-              className="px-6 py-2.5 rounded-xl font-bold text-dark border-2 border-neutral-200 hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer w-[140px]"
+              className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl font-bold text-dark border-2 border-neutral-200 hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer text-xs sm:text-sm w-auto sm:w-[140px]"
             >
               Kembali
             </button>
             
             <button
               onClick={() => setIsSubmitModalOpen(true)}
-              className="lg:hidden px-6 py-2.5 rounded-xl font-bold text-light bg-danger border-2 border-danger hover:bg-danger/80 transition-all cursor-pointer"
+              className="lg:hidden px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl font-bold text-light bg-danger border-2 border-danger hover:bg-danger/80 transition-all cursor-pointer text-xs sm:text-sm"
             >
               Selesai
             </button>
@@ -650,7 +661,7 @@ export const TestSession = () => {
             <button
               onClick={() => setCurrentIdx(prev => Math.min(total - 1, prev + 1))}
               disabled={currentIdx === total - 1}
-              className="px-6 py-2.5 rounded-xl font-bold text-light bg-primary border-2 border-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer w-[140px]"
+              className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl font-bold text-light bg-primary border-2 border-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer text-xs sm:text-sm w-auto sm:w-[140px]"
             >
               Selanjutnya
             </button>
@@ -716,6 +727,74 @@ export const TestSession = () => {
         </div>
 
       </div>
+
+      {/* Mobile Question Navigation Drawer */}
+      {isNavDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-dark/40 backdrop-blur-sm p-0 sm:p-4 lg:hidden">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-neutral-200">
+              <h3 className="font-bold text-lg text-dark">Navigasi Soal Ujian</h3>
+              <button
+                onClick={() => setIsNavDrawerOpen(false)}
+                className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 hover:bg-neutral-200 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex gap-4 text-xs text-neutral-500 mb-4">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 bg-primary rounded-sm" /> Dijawab ({answeredCount})
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 border border-neutral-300 rounded-sm" /> Belum ({total - answeredCount})
+              </div>
+            </div>
+
+            <div className="overflow-y-auto flex-grow my-2">
+              <div className="grid grid-cols-5 gap-2">
+                {displayQuestions.map((qItem, i) => {
+                  const isAnswered = !!answers[qItem.id]
+                  const isCurrent = currentIdx === i
+
+                  let style = "bg-white border-neutral-300 text-neutral-500 hover:bg-neutral-50"
+                  if (isAnswered) {
+                    style = "bg-primary border-primary text-white"
+                  }
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setCurrentIdx(i)
+                        setIsNavDrawerOpen(false)
+                      }}
+                      className={`aspect-square rounded-lg border flex items-center justify-center font-bold text-sm transition-all cursor-pointer ${style} ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                    >
+                      {i + 1}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="pt-4 mt-2 border-t border-neutral-200">
+              <button
+                onClick={() => {
+                  setIsNavDrawerOpen(false)
+                  setIsSubmitModalOpen(true)
+                }}
+                className={`w-full py-3 rounded-xl font-bold border-2 transition-all cursor-pointer text-sm shadow-sm ${allAnswered
+                  ? 'bg-danger border-danger text-light hover:bg-danger/80'
+                  : 'bg-white border-danger text-danger hover:bg-danger/10'
+                  }`}
+              >
+                Selesaikan Ujian
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Submit Modal Overlay */}
       {isSubmitModalOpen && (

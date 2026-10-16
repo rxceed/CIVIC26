@@ -77,35 +77,35 @@ export const AdminDetailAkun = () => {
   }
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-r from-white via-white via-[70%] to-danger/30 p-4 pt-20 md:p-6 md:pt-24 relative flex flex-col font-oxanium pb-20">
+    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-r from-white via-white via-[70%] to-danger/30 p-4 pt-20 sm:pt-24 md:pt-28 md:p-6 relative flex flex-col font-oxanium pb-20">
       <AdminHeader />
 
-      <div className="flex-grow flex flex-col items-center w-full max-w-5xl mx-auto pt-8">
-        <div className="w-full flex items-center gap-4 mb-8 animate-in slide-in-from-left duration-500">
+      <div className="flex-grow flex flex-col items-center w-full max-w-5xl mx-auto pt-4 sm:pt-8">
+        <div className="w-full flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 animate-in slide-in-from-left duration-500">
           <button 
             onClick={() => navigate('/admin/list-akun')}
-            className="p-2 bg-white rounded-full shadow-md text-primary hover:bg-primary hover:text-white transition-colors cursor-pointer border-2 border-primary/20"
+            className="p-2 bg-white rounded-full shadow-md text-primary hover:bg-primary hover:text-white transition-colors cursor-pointer border-2 border-primary/20 shrink-0"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
           </button>
           <div>
-            <h1 className="font-slant text-3xl md:text-4xl text-dark uppercase">
+            <h1 className="font-slant text-2xl sm:text-3xl md:text-4xl text-dark uppercase">
               {account ? `@${account.username}` : 'DETAIL HISTORY AKUN'}
             </h1>
             {account && (
-              <p className="text-neutral-500 font-bold text-sm mt-1">{account.name || 'Tanpa Nama'}</p>
+              <p className="text-neutral-500 font-bold text-xs sm:text-sm mt-1">{account.name || 'Tanpa Nama'}</p>
             )}
           </div>
         </div>
 
-        <div className="bg-white w-full rounded-3xl shadow-xl p-6 md:p-10 border-2 border-primary/20 animate-in fade-in zoom-in duration-500">
+        <div className="bg-white w-full rounded-3xl shadow-xl p-4 sm:p-6 md:p-10 border-2 border-primary/20 animate-in fade-in zoom-in duration-500">
           
-          <h2 className="text-2xl font-bold text-dark mb-6 border-b-2 border-neutral-100 pb-4">History Ujian</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-dark mb-4 sm:mb-6 border-b-2 border-neutral-100 pb-3 sm:pb-4">History Ujian</h2>
 
-          <div className="overflow-x-hidden w-full">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[700px] text-left border-collapse">
               <thead>
                 <tr className="border-b-2 border-neutral-200">
                   <th className="py-4 px-4 font-bold text-neutral-500 text-sm uppercase">Nama Test / Try Out</th>
@@ -208,13 +208,13 @@ export const AdminDetailAkun = () => {
 
       {/* Answer Detail Modal */}
       {selectedHistoryDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-dark/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-300">
             
-            <div className="p-6 border-b-2 border-neutral-100 flex justify-between items-center bg-neutral-50">
+            <div className="p-4 sm:p-6 border-b-2 border-neutral-100 flex justify-between items-center bg-neutral-50">
               <div>
-                <h3 className="font-bold text-xl text-dark">Detail Jawaban</h3>
-                <p className="text-xs font-bold text-neutral-500 mt-1">{selectedHistoryDetail.testName}</p>
+                <h3 className="font-bold text-lg sm:text-xl text-dark">Detail Jawaban</h3>
+                <p className="text-xs font-bold text-neutral-500 mt-0.5 sm:mt-1">{selectedHistoryDetail.testName}</p>
               </div>
               <button 
                 onClick={() => setSelectedHistoryDetail(null)}
@@ -226,7 +226,7 @@ export const AdminDetailAkun = () => {
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-grow bg-white">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-grow bg-white">
               {isLoadingAnswers ? (
                 <div className="flex justify-center py-8">
                   <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>

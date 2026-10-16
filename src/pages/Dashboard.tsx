@@ -86,52 +86,52 @@ export const Dashboard = () => {
   const { hours, minutes, seconds } = formatTime(time)
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gradient-to-r from-white via-white via-[30%] to-primary-100 p-4 pt-20 md:p-6 md:pt-24 relative flex flex-col">
+    <div className="min-h-screen w-full lg:h-screen lg:overflow-hidden overflow-y-auto bg-gradient-to-r from-white via-white via-[30%] to-primary-100 p-3 pt-20 sm:p-4 sm:pt-24 md:p-6 md:pt-24 relative flex flex-col pb-8 lg:pb-4">
       <Header showProfile />
 
       {/* Dashboard Content Grid */}
       <div className="w-full max-w-7xl mx-auto flex-grow flex flex-col gap-4 md:gap-6 min-h-0">
 
-        {/* Top Section (Greeting & Clock) - 30% height */}
+        {/* Top Section (Greeting & Clock) */}
         <div className="flex flex-col lg:flex-row gap-4 md:gap-6 lg:flex-[3] min-h-0">
           {/* Greeting Card */}
-          <div className="bg-light border-2 border-primary rounded-3xl p-6 md:p-8 shadow-md flex flex-col justify-center w-full lg:w-1/2">
-            <h2 className="text-3xl md:text-4xl font-slant text-dark">Halo, Peserta!</h2>
-            <p className="font-oxanium text-neutral-600 text-base md:text-lg leading-relaxed">
+          <div className="bg-light border-2 border-primary rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-md flex flex-col justify-center w-full lg:w-1/2">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-slant text-dark">Halo, Peserta!</h2>
+            <p className="font-oxanium text-neutral-600 text-sm sm:text-base md:text-lg leading-relaxed mt-1 sm:mt-2">
               Kamu masih punya {tryOuts.filter(t => t.status !== 'Sudah Dikerjakan').length} Try Out dan {tests.filter(t => t.status !== 'Sudah Dikerjakan').length} Test yang belum diselesaikan. Jangan sampai kelewatan ya~
             </p>
           </div>
 
           {/* Live Clock Section */}
-          <div className="flex flex-col justify-center pr-4 md:pr-8 py-2 md:py-0 w-full lg:w-1/2 min-h-0">
-            <p className="font-oxanium text-dark text-xl md:text-2xl mb-2 lg:mb-4 shrink-0">{formatDate(time)}</p>
-            <div className="flex items-center gap-1 md:gap-3 flex-1 min-h-0 max-h-16 md:max-h-20">
+          <div className="flex flex-col justify-center pr-0 lg:pr-8 py-2 md:py-0 w-full lg:w-1/2 min-h-0">
+            <p className="font-oxanium text-dark text-base sm:text-xl md:text-2xl mb-2 lg:mb-4 shrink-0">{formatDate(time)}</p>
+            <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-1 min-h-0 h-12 sm:h-16 md:h-20">
               <DigitBox digit={hours[0]} />
               <DigitBox digit={hours[1]} />
-              <span className="text-primary font-bold text-3xl md:text-5xl mx-1 md:mx-2 flex items-center h-full pb-1">:</span>
+              <span className="text-primary font-bold text-2xl sm:text-3xl md:text-5xl mx-0.5 sm:mx-1 md:mx-2 flex items-center h-full pb-1">:</span>
               <DigitBox digit={minutes[0]} />
               <DigitBox digit={minutes[1]} />
-              <span className="text-primary font-bold text-3xl md:text-5xl mx-1 md:mx-2 flex items-center h-full pb-1">:</span>
+              <span className="text-primary font-bold text-2xl sm:text-3xl md:text-5xl mx-0.5 sm:mx-1 md:mx-2 flex items-center h-full pb-1">:</span>
               <DigitBox digit={seconds[0]} />
               <DigitBox digit={seconds[1]} />
             </div>
           </div>
         </div>
 
-        {/* Bottom Section (Tables) - 70% height */}
+        {/* Bottom Section (Tables) */}
         <div className="flex flex-col lg:flex-row gap-4 md:gap-6 lg:flex-[7] min-h-0">
-          <div className="w-full lg:w-1/2 flex flex-col min-h-0">
+          <div className="w-full lg:w-1/2 flex flex-col min-h-[320px] lg:min-h-0">
             {isLoading ? (
-              <div className="flex-1 flex items-center justify-center bg-light border-2 border-primary rounded-3xl min-h-[300px]">
+              <div className="flex-1 flex items-center justify-center bg-light border-2 border-primary rounded-2xl sm:rounded-3xl min-h-[250px]">
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
               </div>
             ) : (
               <DashboardTable title="Try Out" type="tryout" data={tryOuts} />
             )}
           </div>
-          <div className="w-full lg:w-1/2 flex flex-col min-h-0">
+          <div className="w-full lg:w-1/2 flex flex-col min-h-[320px] lg:min-h-0">
             {isLoading ? (
-              <div className="flex-1 flex items-center justify-center bg-light border-2 border-primary rounded-3xl min-h-[300px]">
+              <div className="flex-1 flex items-center justify-center bg-light border-2 border-primary rounded-2xl sm:rounded-3xl min-h-[250px]">
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
               </div>
             ) : (

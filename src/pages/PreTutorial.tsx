@@ -39,19 +39,19 @@ export const PreTutorial = () => {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-100 flex items-center justify-center p-6 font-oxanium text-dark">
-      <div className="bg-light w-full max-w-3xl rounded-3xl shadow-xl overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-neutral-100 flex items-center justify-center p-3 sm:p-6 py-6 sm:py-8 font-oxanium text-dark">
+      <div className="bg-light w-full max-w-3xl rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden flex flex-col">
         
         {/* Header Section */}
-        <div className="bg-primary p-8 text-light">
-          <h1 className="font-slant text-3xl mb-2">TATA TERTIB CBT</h1>
-          <p className="opacity-90 font-medium">Mohon baca peraturan berikut dengan teliti sebelum memulai ujian.</p>
+        <div className="bg-primary p-5 sm:p-8 text-light">
+          <h1 className="font-slant text-2xl sm:text-3xl mb-1 sm:mb-2">TATA TERTIB CBT</h1>
+          <p className="opacity-90 font-medium text-xs sm:text-sm md:text-base">Mohon baca peraturan berikut dengan teliti sebelum memulai ujian.</p>
         </div>
 
         {/* Content Section */}
-        <div className="p-8 md:p-10 flex flex-col gap-8">
+        <div className="p-5 sm:p-8 md:p-10 flex flex-col gap-6 sm:gap-8">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {/* DOs */}
             <div>
               <h3 className="font-bold text-lg text-primary mb-4 flex items-center gap-2">

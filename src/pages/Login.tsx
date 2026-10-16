@@ -38,13 +38,13 @@ export const Login = () => {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-primary-100 flex flex-col items-center justify-center relative p-6">
+    <div className="min-h-screen w-full overflow-y-auto bg-primary-100 flex flex-col items-center justify-center relative p-4 pt-20 sm:p-6 sm:pt-24 pb-8">
       <Header />
 
       {/* Login Card */}
-      <div className="w-full max-w-lg bg-light border border-primary rounded-2xl p-6 md:p-10 my-2 shadow-xl">
-        <h2 className="text-4xl md:text-[42px] font-slant text-dark mb-2">Selamat Datang!</h2>
-        <p className="font-oxanium text-neutral-600 text-lg md:text-xl mb-10">Tolong masukkan informasi akunmu</p>
+      <div className="w-full max-w-lg bg-light border border-primary rounded-2xl p-5 sm:p-8 md:p-10 my-auto shadow-xl">
+        <h2 className="text-3xl sm:text-4xl md:text-[42px] font-slant text-dark mb-1 sm:mb-2">Selamat Datang!</h2>
+        <p className="font-oxanium text-neutral-600 text-sm sm:text-lg md:text-xl mb-6 sm:mb-8">Tolong masukkan informasi akunmu</p>
 
         <form onSubmit={handleLogin} className="flex flex-col">
           {/* Username Field */}

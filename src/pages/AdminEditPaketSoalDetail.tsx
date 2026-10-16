@@ -418,25 +418,25 @@ export const AdminEditPaketSoalDetail = () => {
   }, 0)
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-r from-white via-white via-[70%] to-danger/30 p-4 pt-20 md:p-6 md:pt-24 relative flex flex-col font-oxanium pb-20">
+    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-r from-white via-white via-[70%] to-danger/30 p-4 pt-20 sm:pt-24 md:pt-28 md:p-6 relative flex flex-col font-oxanium pb-20">
       <AdminHeader />
 
-      <div className="flex-grow flex flex-col items-center w-full max-w-5xl mx-auto pt-8">
-        <div className="w-full flex items-center justify-between mb-8 animate-in slide-in-from-left duration-500">
-          <div className="flex items-center gap-4">
+      <div className="flex-grow flex flex-col items-center w-full max-w-5xl mx-auto pt-4 sm:pt-8">
+        <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8 animate-in slide-in-from-left duration-500">
+          <div className="flex items-center gap-3 sm:gap-4">
             <button
               onClick={() => navigate('/admin/edit-paket-soal')}
-              className="p-2 bg-white rounded-full shadow-md text-primary hover:bg-primary hover:text-white transition-colors cursor-pointer border-2 border-primary/20"
+              className="p-2 bg-white rounded-full shadow-md text-primary hover:bg-primary hover:text-white transition-colors cursor-pointer border-2 border-primary/20 shrink-0"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
               </svg>
             </button>
-            <h1 className="font-slant text-4xl text-dark">EDIT PAKET SOAL</h1>
+            <h1 className="font-slant text-2xl sm:text-3xl md:text-4xl text-dark">EDIT PAKET SOAL</h1>
           </div>
-          <div className="bg-white px-4 py-2 rounded-xl border-2 border-primary/20 shadow-sm flex items-center gap-2">
-            <span className="text-sm font-bold text-neutral-500">Total Bobot:</span>
-            <span className="text-xl font-bold text-primary">{totalScore}</span>
+          <div className="bg-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border-2 border-primary/20 shadow-sm flex items-center gap-2 self-end sm:self-auto">
+            <span className="text-xs sm:text-sm font-bold text-neutral-500">Total Bobot:</span>
+            <span className="text-lg sm:text-xl font-bold text-primary">{totalScore}</span>
           </div>
         </div>
 
@@ -448,8 +448,8 @@ export const AdminEditPaketSoalDetail = () => {
           <form onSubmit={handleSubmit} className="w-full space-y-6">
 
             {/* Paket Detail Section */}
-            <div className="bg-white rounded-3xl shadow-xl p-6 md:p-10 border-2 border-primary/20 animate-in fade-in zoom-in duration-500">
-              <h2 className="text-2xl font-bold text-dark mb-6 border-b-2 border-neutral-100 pb-4">Detail Paket Soal</h2>
+            <div className="bg-white rounded-3xl shadow-xl p-4 sm:p-6 md:p-10 border-2 border-primary/20 animate-in fade-in zoom-in duration-500">
+              <h2 className="text-xl sm:text-2xl font-bold text-dark mb-4 sm:mb-6 border-b-2 border-neutral-100 pb-3 sm:pb-4">Detail Paket Soal</h2>
 
               <div className="space-y-4">
                 <div>
@@ -482,14 +482,14 @@ export const AdminEditPaketSoalDetail = () => {
             {/* Questions Section */}
             <div className="space-y-6">
               {questions.map((q, qIndex) => (
-                <div key={q.id} className="bg-white rounded-3xl shadow-xl p-6 md:p-8 border-2 border-primary/20 relative animate-in slide-in-from-bottom-4 duration-500">
+                <div key={q.id} className="bg-white rounded-3xl shadow-xl p-4 sm:p-6 md:p-8 border-2 border-primary/20 relative animate-in slide-in-from-bottom-4 duration-500">
 
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 border-b-2 border-neutral-100 pb-4">
-                    <div className="flex items-center gap-4">
-                      <h3 className="text-xl font-bold text-dark">Soal {qIndex + 1}</h3>
+                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 border-b-2 border-neutral-100 pb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
+                      <h3 className="text-lg sm:text-xl font-bold text-dark shrink-0">Soal {qIndex + 1}</h3>
 
-                      <div className="flex items-center gap-3 bg-neutral-50 px-3 py-1.5 rounded-lg border-2 border-neutral-200 flex-wrap">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 sm:gap-3 bg-neutral-50 px-2.5 sm:px-3 py-1.5 rounded-lg border-2 border-neutral-200 flex-wrap">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                           <label className="text-xs font-bold text-primary">Bobot Nilai</label>
                           <input
                             type="text"
@@ -498,10 +498,10 @@ export const AdminEditPaketSoalDetail = () => {
                             onChange={(e) => handleQuestionScoreChange(q.id, e.target.value)}
                             onBlur={() => handleWeightBlur(q.id, 'scoreWeight', 10)}
                             onFocus={(e) => e.target.select()}
-                            className="w-16 bg-white text-dark font-bold focus:outline-none text-center border rounded-md"
+                            className="w-14 sm:w-16 bg-white text-dark font-bold focus:outline-none text-center border rounded-md py-0.5 text-xs sm:text-sm"
                           />
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                           <label className="text-xs font-bold text-danger">Bobot Penalti</label>
                           <input
                             type="text"
@@ -510,11 +510,11 @@ export const AdminEditPaketSoalDetail = () => {
                             onChange={(e) => handleQuestionPenaltyChange(q.id, e.target.value)}
                             onBlur={() => handleWeightBlur(q.id, 'penaltyWeight', 0)}
                             onFocus={(e) => e.target.select()}
-                            className="w-16 bg-white text-dark font-bold focus:outline-none text-center border rounded-md"
+                            className="w-14 sm:w-16 bg-white text-dark font-bold focus:outline-none text-center border rounded-md py-0.5 text-xs sm:text-sm"
                           />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs font-bold text-neutral-600">Bobot Tidak Dijawab</label>
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <label className="text-xs font-bold text-neutral-600">Bobot Kosong</label>
                           <input
                             type="text"
                             inputMode="numeric"
@@ -522,14 +522,14 @@ export const AdminEditPaketSoalDetail = () => {
                             onChange={(e) => handleQuestionUnansweredChange(q.id, e.target.value)}
                             onBlur={() => handleWeightBlur(q.id, 'unansweredWeight', 0)}
                             onFocus={(e) => e.target.select()}
-                            className="w-16 bg-white text-dark font-bold focus:outline-none text-center border rounded-md"
+                            className="w-14 sm:w-16 bg-white text-dark font-bold focus:outline-none text-center border rounded-md py-0.5 text-xs sm:text-sm"
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                      <div className="flex items-center gap-3 bg-neutral-50 px-3 py-1.5 rounded-lg border-2 border-neutral-100">
+                    <div className="flex items-center gap-3 sm:gap-4 w-full lg:w-auto justify-between lg:justify-end">
+                      <div className="flex items-center gap-2 sm:gap-3 bg-neutral-50 px-2.5 sm:px-3 py-1.5 rounded-lg border-2 border-neutral-100">
                         <label className="text-xs font-bold text-neutral-600 cursor-pointer" htmlFor={`acak-pilihan-${q.id}`}>
                           Acak Pilihan Ganda
                         </label>
@@ -548,7 +548,7 @@ export const AdminEditPaketSoalDetail = () => {
                       <button
                         type="button"
                         onClick={() => handleRemoveQuestion(q.id)}
-                        className="p-2 text-neutral-400 hover:text-danger hover:bg-danger/10 rounded-full transition-colors"
+                        className="p-2 text-neutral-400 hover:text-danger hover:bg-danger/10 rounded-full transition-colors cursor-pointer"
                         title="Hapus Soal"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
@@ -616,7 +616,7 @@ export const AdminEditPaketSoalDetail = () => {
                     <label className="block text-sm font-bold text-dark mb-1">Pilihan Jawaban</label>
 
                     {q.choices.map((c, cIndex) => (
-                      <div key={c.id} className={`flex items-start gap-3 p-3 rounded-xl border-2 transition-all ${c.isCorrect ? 'border-primary bg-primary/5' : 'border-neutral-200'}`}>
+                      <div key={c.id} className={`flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl border-2 transition-all ${c.isCorrect ? 'border-primary bg-primary/5' : 'border-neutral-200'}`}>
                         <div className="mt-2.5">
                           <label className="relative flex cursor-pointer items-center rounded-full p-1" htmlFor={`checkbox-${c.id}`}>
                             <input
@@ -735,18 +735,18 @@ export const AdminEditPaketSoalDetail = () => {
             </button>
 
             {/* Submit Button */}
-            <div className="sticky bottom-6 z-10 pt-4 flex gap-4 bg-gradient-to-t from-white via-white to-transparent pb-2">
+            <div className="sticky bottom-6 z-10 pt-4 flex gap-3 sm:gap-4 bg-gradient-to-t from-white via-white to-transparent pb-2">
               <button
                 type="button"
                 onClick={() => navigate('/admin/master')}
-                className="px-6 py-4 font-bold text-neutral-500 bg-white border-2 border-neutral-200 rounded-xl hover:bg-neutral-50 transition-colors shadow-lg cursor-pointer"
+                className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-neutral-500 bg-white border-2 border-neutral-200 rounded-xl hover:bg-neutral-50 transition-colors shadow-lg cursor-pointer text-sm sm:text-base"
               >
                 BATAL
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-grow font-bold text-light bg-primary py-4 rounded-xl shadow-xl hover:bg-primary/90 transition-colors text-lg cursor-pointer flex items-center justify-center gap-2"
+                className="flex-grow font-bold text-light bg-primary py-3 sm:py-4 rounded-xl shadow-xl hover:bg-primary/90 transition-colors text-base sm:text-lg cursor-pointer flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>
